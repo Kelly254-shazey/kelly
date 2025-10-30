@@ -39,11 +39,15 @@ class AuthController extends Controller
       $user = User::create([
         'first_name' => $request->first_name,
         'last_name' => $request->last_name,
+        // Save full name into `name` column required by the users table
+        'name' => trim($request->first_name . ' ' . $request->last_name),
         'email' => $request->email,
         'password' => Hash::make($request->password),
         'date_of_birth' => $request->date_of_birth,
         'county' => $request->county,
         'gender' => $request->gender,
+        // Ensure a default role is assigned (roles seeded with id 1)
+        'role_id' => $request->role_id ?? 1,
       ]);
 
       // Create token

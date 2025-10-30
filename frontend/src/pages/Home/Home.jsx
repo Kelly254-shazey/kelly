@@ -18,7 +18,9 @@ const Home = () => {
   const fetchPosts = async () => {
     try {
       const response = await postsAPI.getFeed()
-      setPosts(response.data.posts)
+      // API returns a paginated object: { posts: { data: [...] , ... } }
+      // we only need the array of posts for the feed
+      setPosts(response.data.posts?.data || [])
     } catch (error) {
       console.error('Error fetching posts:', error)
     } finally {

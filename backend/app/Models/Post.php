@@ -49,8 +49,13 @@ class Post extends Model
   }
 
   // Scopes
-  public function scopeVisibleTo($query, User $user)
+  public function scopeVisibleTo($query, ?User $user)
   {
+    // If no authenticated user, only return public posts
+    if (is_null($user)) {
+      return $query->where('visibility', 'public');
+    }
+
     return $query->where(function ($q) use ($user) {
       $q->where('visibility', 'public')
         ->orWhere('user_id', $user->id)
