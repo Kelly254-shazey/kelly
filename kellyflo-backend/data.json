@@ -1,0 +1,10 @@
+{
+  "first_name": "Test",
+  "last_name": "User",
+  "email": "test@example.com",
+  "password": "password123",
+  "date_of_birth": "1990-01-01",
+  "county": "Nairobi",
+  "gender": "male",
+  "terms": true
+}
