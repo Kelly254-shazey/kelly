@@ -12,16 +12,25 @@ class ProfileController extends Controller
 {
   public function show($userId = null)
   {
-    $user = $userId ? User::findOrFail($userId) : request()->user();
+    $authUser = request()->user();
+    // If no $userId provided, ensure an authenticated user exists
+    if (!$userId && !$authUser) {
+      return response()->json(['message' => 'Unauthenticated'], 401);
+    }
 
+    $user = $userId ? User::findOrFail($userId) : $authUser;
+
+    // Safely load counts
     $user->loadCount(['posts', 'followers', 'following']);
+
+    $authUserId = $authUser ? $authUser->id : null;
 
     return response()->json([
       'user' => $user,
-      'is_own_profile' => !$userId || $userId == request()->user()->id,
-      'is_following' => $userId ? Follow::where('follower_id', request()->user()->id)
+      'is_own_profile' => !$userId || ($authUserId !== null && $userId == $authUserId),
+      'is_following' => ($userId && $authUserId) ? Follow::where('follower_id', $authUserId)
         ->where('following_id', $userId)->exists() : false,
-      'friendship_status' => $userId ? $this->getFriendshipStatus($userId) : null
+      'friendship_status' => ($userId && $authUserId) ? $this->getFriendshipStatus($userId) : null
     ]);
   }
 

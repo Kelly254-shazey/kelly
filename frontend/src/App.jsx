@@ -27,6 +27,7 @@ import VideoCall from './pages/VideoCall/VideoCall'
 import Announcements from './pages/Announcements/Announcements'
 import Reels from './pages/Reels/Reels'
 import AdminDashboard from './pages/Admin/Dashboard'
+import AdminRoles from './pages/Admin/Roles'
 import Friends from './pages/Friends/Friends'
 import Watch from './pages/Watch/Watch'
 
@@ -230,6 +231,16 @@ function AppContent() {
             <ProtectedRoute requireAdmin={true}>
               <Layout>
                 <AdminDashboard />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/roles" 
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <Layout>
+                <AdminRoles />
               </Layout>
             </ProtectedRoute>
           } 

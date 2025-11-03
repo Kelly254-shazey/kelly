@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { Users, ShoppingBag, Video, DollarSign, TrendingUp, AlertCircle, Eye } from 'lucide-react'
 import { adminAPI } from '../../services/api'
 
@@ -102,20 +103,23 @@ const AdminDashboard = () => {
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Quick Actions
             </h3>
-            <div className="space-y-3">
-              <button className="w-full text-left p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                Manage Users
-              </button>
-              <button className="w-full text-left p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                View Reports
-              </button>
-              <button className="w-full text-left p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                Ad Management
-              </button>
-              <button className="w-full text-left p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                System Settings
-              </button>
-            </div>
+              <div className="space-y-3">
+                <Link to="/admin/users" className="w-full block text-left p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                  Manage Users
+                </Link>
+                <Link to="/admin/roles" className="w-full block text-left p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                  Roles
+                </Link>
+                <button className="w-full text-left p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                  View Reports
+                </button>
+                <Link to="/admin/ads" className="w-full block text-left p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                  Ad Management
+                </Link>
+                <button className="w-full text-left p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                  System Settings
+                </button>
+              </div>
           </div>
 
           {/* System Status */}

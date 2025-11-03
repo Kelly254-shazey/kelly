@@ -20,7 +20,11 @@ class AdController extends Controller
       'placement' => 'required|in:feed_top,feed_middle,feed_bottom,sidebar,video_pre_roll'
     ]);
 
-    $ad = $this->adService->getAdsForUser($request->user()->id, $request->placement);
+    // Guard against unauthenticated requests: $request->user() can be null
+    $user = $request->user();
+    $userId = $user ? $user->id : null;
+
+    $ad = $this->adService->getAdsForUser($userId, $request->placement);
 
     if (!$ad) {
       return response()->json(['ad' => null]);

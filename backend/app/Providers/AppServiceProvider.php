@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Cache\RateLimiting\Limit;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -29,11 +32,12 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('messages', function (Request $request) {
-            return Limit::perMinute(30)->by($request->user()->id);
+            // Use user id when available, otherwise fallback to IP
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
         });
 
         RateLimiter::for('posts', function (Request $request) {
-            return Limit::perMinute(10)->by($request->user()->id);
+            return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
         });
     }
 }
