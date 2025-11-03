@@ -113,6 +113,22 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    /**
+     * Users who follow this user
+     */
+    public function followers()
+    {
+        return $this->belongsToMany(User::class, 'follows', 'following_id', 'follower_id');
+    }
+
+    /**
+     * Users this user is following
+     */
+    public function following()
+    {
+        return $this->belongsToMany(User::class, 'follows', 'follower_id', 'following_id');
+    }
+
     public function getAgeAttribute()
     {
         return $this->date_of_birth ? $this->date_of_birth->age : null;

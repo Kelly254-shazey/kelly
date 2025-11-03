@@ -46,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/{post}/like', [PostController::class, 'like']);
     Route::post('/{post}/unlike', [PostController::class, 'unlike']);
     Route::post('/{post}/comments', [PostController::class, 'comment']);
+  Route::post('/{post}/share', [PostController::class, 'share']);
     Route::post('/{post}/sponsor', [PostController::class, 'sponsor']);
   });
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Plus, Image, Video, Smile, MapPin } from 'lucide-react'
 import CreatePost from '../../components/Posts/CreatePost'
-import Post from '../../components/Posts/Post'
+import Post from '../../components/Posts/post'
 import Stories from '../../components/Posts/Stories'
 import LoadingSpinner from '../../components/Common/LoadingSpinner'
 import { postsAPI } from '../../services/api'
@@ -43,6 +43,40 @@ const Home = () => {
       ))
     } catch (error) {
       console.error('Error liking post:', error)
+    }
+  }
+
+  const handleComment = async (postId, content) => {
+    try {
+      const response = await postsAPI.comment(postId, { content })
+      const newComment = response.data.comment
+
+      setPosts(posts.map(post => {
+        if (post.id === postId) {
+          const updatedComments = [...(post.comments || []), newComment]
+          return {
+            ...post,
+            comments: updatedComments,
+            comments_count: (post.comments_count || 0) + 1
+          }
+        }
+        return post
+      }))
+    } catch (error) {
+      console.error('Error posting comment:', error)
+    }
+  }
+
+  const handleShare = async (postId) => {
+    try {
+      const response = await postsAPI.share(postId)
+      const shares_count = response.data.shares_count
+
+      setPosts(posts.map(post => 
+        post.id === postId ? { ...post, shares_count } : post
+      ))
+    } catch (error) {
+      console.error('Error sharing post:', error)
     }
   }
 
@@ -100,9 +134,8 @@ const Home = () => {
             key={post.id}
             post={post}
             onLike={handleLike}
-            onComment={(postId, comment) => {
-              // Handle comment
-            }}
+            onComment={handleComment}
+            onShare={handleShare}
           />
         ))}
       </div>

@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { SocketProvider } from './contexts/SocketContext'
+import { EchoProvider } from './contexts/EchoContext'
 import { CallProvider } from './contexts/CallContext'
 
 // Layout Components
@@ -26,6 +27,8 @@ import VideoCall from './pages/VideoCall/VideoCall'
 import Announcements from './pages/Announcements/Announcements'
 import Reels from './pages/Reels/Reels'
 import AdminDashboard from './pages/Admin/Dashboard'
+import Friends from './pages/Friends/Friends'
+import Watch from './pages/Watch/Watch'
 
 // Video Call Components
 import IncomingCallNotification from './components/VideoCall/IncomingCallNotification'
@@ -39,13 +42,15 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <SocketProvider>
-          <CallProvider>
+        <EchoProvider>
+          <SocketProvider>
+            <CallProvider>
             <Router>
               <AppContent />
             </Router>
-          </CallProvider>
-        </SocketProvider>
+            </CallProvider>
+          </SocketProvider>
+        </EchoProvider>
       </AuthProvider>
     </ThemeProvider>
   )
@@ -151,6 +156,28 @@ function AppContent() {
               </Layout>
             </ProtectedRoute>
           } 
+        />
+
+        <Route 
+          path="/friends"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Friends />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route 
+          path="/watch"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Watch />
+              </Layout>
+            </ProtectedRoute>
+          }
         />
 
         <Route 

@@ -15,19 +15,23 @@ class AuthController extends Controller
    */
   public function register(Request $request): JsonResponse
   {
-    // Validation rules
+    // Validation rules - accept either full `name` or `first_name` + `last_name`
     $validator = Validator::make($request->all(), [
-      'first_name' => 'required|string|max:255',
-      'last_name' => 'required|string|max:255',
+      'first_name' => 'required_without:name|string|max:255',
+      'last_name' => 'required_with:first_name|string|max:255',
+      'name' => 'required_without:first_name|string|max:255',
       'email' => 'required|string|email|max:255|unique:users',
       'password' => 'required|string|min:6',
       'date_of_birth' => 'required|date',
       'county' => 'required|string',
       'gender' => 'required|in:male,female,other',
-      'terms' => 'required|accepted',
+      'terms' => 'sometimes|accepted',
     ]);
 
     if ($validator->fails()) {
+      // log validation errors to help debugging in development
+      logger()->warning('Registration validation failed', ['errors' => $validator->errors()->toArray()]);
+
       return response()->json([
         'message' => 'Validation failed',
         'errors' => $validator->errors()
@@ -36,11 +40,11 @@ class AuthController extends Controller
 
     try {
       // Create user
+      // Determine name
+      $fullName = $request->name ?? trim(($request->first_name ?? '') . ' ' . ($request->last_name ?? ''));
+
       $user = User::create([
-        'first_name' => $request->first_name,
-        'last_name' => $request->last_name,
-        // Save full name into `name` column required by the users table
-        'name' => trim($request->first_name . ' ' . $request->last_name),
+        'name' => $fullName,
         'email' => $request->email,
         'password' => Hash::make($request->password),
         'date_of_birth' => $request->date_of_birth,

@@ -16,6 +16,7 @@ class Kernel extends HttpKernel
     // Other middleware...
     \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
 
-    \App\Http\Middleware\CorsMiddleware::class,
+    // Use the official Fruitcake CORS middleware which uses config/cors.php
+    \Fruitcake\Cors\HandleCors::class,
   ];
 }

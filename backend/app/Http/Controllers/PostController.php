@@ -125,6 +125,16 @@ class PostController extends Controller
     ], 201);
   }
 
+  public function share(Post $post)
+  {
+    // Increment share count. In future, you may want to record a PostShare model.
+    $post->increment('shares_count');
+
+    return response()->json([
+      'shares_count' => $post->shares_count
+    ]);
+  }
+
   public function destroy(Post $post)
   {
     if ($post->user_id !== request()->user()->id && !request()->user()->isAdmin()) {

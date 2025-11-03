@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { useSocket } from './SocketContext'
+import { useEcho } from './EchoContext'
 import { useAuth } from './AuthContext'
 
 const CallContext = createContext()
@@ -18,11 +19,63 @@ export const CallProvider = ({ children }) => {
   const [callHistory, setCallHistory] = useState([])
   const [isCallModalOpen, setIsCallModalOpen] = useState(false)
   const socket = useSocket()
+  const { echo, subscribeToCall, unsubscribeFromChannel } = useEcho() || {}
   const { user } = useAuth()
 
   useEffect(() => {
     if (socket && user) {
       setupSocketListeners()
+    }
+
+    // If Echo is available, set up an echo subscription for active/ incoming calls
+    let echoChannel = null
+    if (echo && user) {
+      // If we already have an incomingCall with call_id, subscribe
+      const callId = incomingCall?.call_id || activeCall?.call_id
+      if (callId) {
+        echoChannel = subscribeToCall(callId, (evt) => {
+          // evt contains { event, payload }
+          if (!evt || !evt.event) return
+          const name = evt.event
+          const payload = evt.payload
+          // Reuse same handlers as socket
+          if (name === 'initiated') {
+            setIncomingCall(payload.call)
+            playRingtone()
+          } else if (name === 'accepted') {
+            setActiveCall(payload.call)
+            setIncomingCall(null)
+            stopRingtone()
+            setIsCallModalOpen(true)
+          } else if (name === 'rejected') {
+            setIncomingCall(null)
+            stopRingtone()
+            showNotification('Call rejected', 'error')
+          } else if (name === 'ended') {
+            setActiveCall(null)
+            setIncomingCall(null)
+            setIsCallModalOpen(false)
+            stopRingtone()
+            if (payload.call) {
+              setCallHistory(prev => [payload.call, ...prev.slice(0, 49)])
+            }
+          } else if (name === 'participant_joined') {
+            if (activeCall && activeCall.id === payload.call_id) {
+              setActiveCall(prev => ({
+                ...prev,
+                participants: [...(prev.participants || []), payload.participant]
+              }))
+            }
+          } else if (name === 'participant_left') {
+            if (activeCall && activeCall.id === payload.call_id) {
+              setActiveCall(prev => ({
+                ...prev,
+                participants: prev.participants?.filter(p => p.user_id !== payload.user_id) || []
+              }))
+            }
+          }
+        })
+      }
     }
   }, [socket, user])
 
@@ -89,6 +142,10 @@ export const CallProvider = ({ children }) => {
         socket.off('call.ended')
         socket.off('call.participant_joined')
         socket.off('call.participant_left')
+      }
+
+      if (echoChannel) {
+        try { unsubscribeFromChannel(echoChannel) } catch (e) { /* ignore */ }
       }
     }
   }

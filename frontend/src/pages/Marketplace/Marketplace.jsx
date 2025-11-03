@@ -7,6 +7,13 @@ import LoadingSpinner from '../../components/Common/LoadingSpinner'
 const Marketplace = () => {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    last_page: 1,
+    per_page: 0,
+    total: 0
+  })
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
     category: '',
@@ -17,18 +24,48 @@ const Marketplace = () => {
   })
 
   useEffect(() => {
-    fetchProducts()
-  }, [filters])
+    fetchProducts(page)
+  }, [filters, page])
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (pageNum = 1) => {
     try {
-      const response = await marketplaceAPI.getProducts(filters)
-      setProducts(response.data.products)
+      const params = { ...filters, page: pageNum }
+      const response = await marketplaceAPI.getProducts(params)
+      // Debug: log full response to help diagnose shape issues
+      console.debug('marketplace API response', response?.data)
+
+      // Backend may return products in different shapes:
+      // - array directly: [ {..}, ... ]
+      // - wrapper with `products` key: { products: [ ... ] }
+      // - Laravel paginator: { current_page, data: [ ... ], ... }
+      const productsData = response?.data?.products ?? response?.data?.data ?? response?.data
+
+      if (response?.data && response?.data?.current_page !== undefined) {
+        setPagination({
+          current_page: response.data.current_page,
+          last_page: response.data.last_page,
+          per_page: response.data.per_page ?? (response.data.data?.length || 0),
+          total: response.data.total ?? 0
+        })
+      }
+
+      if (Array.isArray(productsData)) {
+        setProducts(productsData)
+      } else {
+        console.warn('Unexpected products response shape, expected array but got:', response?.data)
+        setProducts([])
+      }
     } catch (error) {
       console.error('Error fetching products:', error)
+      setProducts([])
     } finally {
       setLoading(false)
     }
+  }
+
+  const goToPage = async (p) => {
+    if (!p || p < 1 || p > pagination.last_page) return
+    setPage(p)
   }
 
   const handleFilterChange = (key, value) => {
@@ -138,10 +175,29 @@ const Marketplace = () => {
 
       {/* Products Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {products.map((product) => (
+        {(Array.isArray(products) ? products : []).map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
       </div>
+
+      {/* Pagination controls (simple) */}
+      {pagination && pagination.last_page > 1 && (
+        <div className="flex items-center justify-center space-x-2 mt-6">
+          <button
+            onClick={() => goToPage(pagination.current_page - 1)}
+            disabled={pagination.current_page <= 1}
+            className="px-3 py-1 border rounded disabled:opacity-50"
+          >Prev</button>
+
+          <span>Page {pagination.current_page} of {pagination.last_page}</span>
+
+          <button
+            onClick={() => goToPage(pagination.current_page + 1)}
+            disabled={pagination.current_page >= pagination.last_page}
+            className="px-3 py-1 border rounded disabled:opacity-50"
+          >Next</button>
+        </div>
+      )}
 
       {products.length === 0 && (
         <div className="text-center py-12">
@@ -150,6 +206,39 @@ const Marketplace = () => {
           </div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No products found</h3>
           <p className="text-gray-500 dark:text-gray-400">Try adjusting your filters or search terms</p>
+            <div className="mt-4">
+              <button
+                onClick={() => {
+                  // Dev-only: inject mock products for local development
+                  const mock = [
+                    {
+                      id: 'm1',
+                      title: 'Sample Phone',
+                      description: 'A gently used smartphone',
+                      price: 12000,
+                      county: 'Nairobi',
+                      condition: 'used',
+                      images: ['/default-product.svg'],
+                      seller: { name: 'Demo Seller', avatar: '/default-avatar.png' },
+                      created_at: '2025-01-01'
+                    },
+                    {
+                      id: 'm2',
+                      title: 'Mountain Bike',
+                      description: 'Lightly used mountain bike',
+                      price: 45000,
+                      county: 'Kiambu',
+                      condition: 'used',
+                      images: ['/default-product.svg'],
+                      seller: { name: 'Bike Shop', avatar: '/default-avatar.png' },
+                      created_at: '2025-02-01'
+                    }
+                  ]
+                  setProducts(mock)
+                }}
+                className="btn-secondary"
+              >Use mock data</button>
+            </div>
         </div>
       )}
     </div>
@@ -168,7 +257,7 @@ const ProductCard = ({ product }) => {
     <div className="card group cursor-pointer transform hover:scale-105 transition-transform duration-200">
       <div className="relative">
         <img
-          src={product.images[0] || '/default-product.jpg'}
+          src={(product.images && product.images.length && product.images[0]) ? product.images[0] : '/default-product.svg'}
           alt={product.title}
           className="w-full h-48 object-cover rounded-lg mb-3"
         />

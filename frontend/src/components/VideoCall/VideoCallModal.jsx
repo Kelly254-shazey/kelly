@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Mic, MicOff, Video, VideoOff, Phone, Users, DollarSign } from 'lucide-react';
 import { useSocket } from '../../contexts/SocketContext';
+import { useEcho } from '../../contexts/EchoContext';
 import { useAuth } from '../../contexts/AuthContext';
 
 const VideoCallModal = ({ call, onClose, isIncoming = false }) => {
@@ -16,6 +17,7 @@ const VideoCallModal = ({ call, onClose, isIncoming = false }) => {
   const remoteVideoRef = useRef(null);
   const peerConnection = useRef(null);
   const socket = useSocket();
+  const { echo, subscribeToCall, unsubscribeFromChannel } = useEcho() || {}
   const { user } = useAuth();
 
   const configuration = {
@@ -33,6 +35,31 @@ const VideoCallModal = ({ call, onClose, isIncoming = false }) => {
       cleanupCall();
     };
   }, [call]);
+
+  useEffect(() => {
+    // If Echo is available, subscribe to call channel to receive server broadcasts
+    let channel = null
+    if (echo && call?.call_id) {
+      channel = subscribeToCall(call.call_id, (evt) => {
+        if (!evt || !evt.event) return
+        const name = evt.event
+        const payload = evt.payload
+        // Map incoming broadcast events to the same handlers
+        if (name === 'signal.offer') handleOffer(payload)
+        else if (name === 'signal.answer') handleAnswer(payload)
+        else if (name === 'signal.candidate') handleCandidate(payload)
+        else if (name === 'accepted') handleCallAccepted(payload)
+        else if (name === 'ended') handleCallEnded(payload)
+        else if (name === 'rejected') handleCallRejected(payload)
+        else if (name === 'audio_toggled') handleAudioToggled(payload)
+        else if (name === 'video_toggled') handleVideoToggled(payload)
+      })
+    }
+
+    return () => {
+      if (channel) try { unsubscribeFromChannel(channel) } catch (e) { /* ignore */ }
+    }
+  }, [echo, call])
 
   useEffect(() => {
     let interval;
@@ -54,11 +81,13 @@ const VideoCallModal = ({ call, onClose, isIncoming = false }) => {
         // Create and send offer
         const offer = await peerConnection.current.createOffer();
         await peerConnection.current.setLocalDescription(offer);
-        socket.emit('send_signal', {
-          call_id: call.call_id,
-          signal: offer,
-          type: 'offer'
-        });
+        if (socket) {
+          socket.emit('send_signal', {
+            call_id: call.call_id,
+            signal: offer,
+            type: 'offer'
+          });
+        }
       }
 
       setupSocketListeners();
@@ -106,16 +135,20 @@ const VideoCallModal = ({ call, onClose, isIncoming = false }) => {
     // Handle ICE candidates
     peerConnection.current.onicecandidate = (event) => {
       if (event.candidate) {
-        socket.emit('send_signal', {
-          call_id: call.call_id,
-          signal: event.candidate,
-          type: 'candidate'
-        });
+        if (socket) {
+          socket.emit('send_signal', {
+            call_id: call.call_id,
+            signal: event.candidate,
+            type: 'candidate'
+          });
+        }
       }
     };
   };
 
   const setupSocketListeners = () => {
+    if (!socket) return;
+
     socket.on('signal.offer', handleOffer);
     socket.on('signal.answer', handleAnswer);
     socket.on('signal.candidate', handleCandidate);
@@ -131,11 +164,13 @@ const VideoCallModal = ({ call, onClose, isIncoming = false }) => {
     const answer = await peerConnection.current.createAnswer();
     await peerConnection.current.setLocalDescription(answer);
     
-    socket.emit('send_signal', {
-      call_id: call.call_id,
-      signal: answer,
-      type: 'answer'
-    });
+    if (socket) {
+      socket.emit('send_signal', {
+        call_id: call.call_id,
+        signal: answer,
+        type: 'answer'
+      });
+    }
   };
 
   const handleAnswer = async (data) => {
@@ -176,17 +211,17 @@ const VideoCallModal = ({ call, onClose, isIncoming = false }) => {
   };
 
   const acceptCall = () => {
-    socket.emit('accept_call', { call_id: call.call_id });
+    if (socket) socket.emit('accept_call', { call_id: call.call_id });
     setCallStatus('ongoing');
   };
 
   const rejectCall = () => {
-    socket.emit('reject_call', { call_id: call.call_id });
+    if (socket) socket.emit('reject_call', { call_id: call.call_id });
     onClose();
   };
 
   const endCall = () => {
-    socket.emit('end_call', { call_id: call.call_id });
+    if (socket) socket.emit('end_call', { call_id: call.call_id });
     cleanupCall();
     onClose();
   };
@@ -196,7 +231,7 @@ const VideoCallModal = ({ call, onClose, isIncoming = false }) => {
       const audioTrack = localStream.getAudioTracks()[0];
       audioTrack.enabled = !audioTrack.enabled;
       setIsMuted(!audioTrack.enabled);
-      socket.emit('toggle_audio', { call_id: call.call_id });
+      if (socket) socket.emit('toggle_audio', { call_id: call.call_id });
     }
   };
 
@@ -205,7 +240,7 @@ const VideoCallModal = ({ call, onClose, isIncoming = false }) => {
       const videoTrack = localStream.getVideoTracks()[0];
       videoTrack.enabled = !videoTrack.enabled;
       setIsVideoOff(!videoTrack.enabled);
-      socket.emit('toggle_video', { call_id: call.call_id });
+      if (socket) socket.emit('toggle_video', { call_id: call.call_id });
     }
   };
 

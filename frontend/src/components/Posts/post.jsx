@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Heart, MessageCircle, Share, MoreHorizontal, ThumbsUp } from 'lucide-react'
+import { Heart, MessageCircle, Share, MoreHorizontal, ThumbsUp, Globe } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 
 const Post = ({ post, onLike, onComment }) => {
@@ -17,6 +17,31 @@ const Post = ({ post, onLike, onComment }) => {
     if (commentText.trim()) {
       onComment(post.id, commentText)
       setCommentText('')
+    }
+  }
+
+  const handleShare = async () => {
+    if (onShare) {
+      onShare(post.id)
+    } else if (navigator.share) {
+      // Fallback to native share if handler not provided
+      try {
+        await navigator.share({
+          title: post.user.name,
+          text: post.content || '',
+          url: window.location.href + `#/post/${post.id}`
+        })
+      } catch (err) {
+        console.error('Share failed', err)
+      }
+    } else {
+      // Copy link fallback
+      try {
+        await navigator.clipboard.writeText(window.location.href + `#/post/${post.id}`)
+        alert('Link copied to clipboard')
+      } catch (err) {
+        console.error('Copy failed', err)
+      }
     }
   }
 
@@ -106,7 +131,7 @@ const Post = ({ post, onLike, onComment }) => {
           <span>Comment</span>
         </button>
 
-        <button className="flex-1 flex items-center justify-center space-x-2 py-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+        <button onClick={handleShare} className="flex-1 flex items-center justify-center space-x-2 py-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
           <Share className="h-5 w-5" />
           <span>Share</span>
         </button>

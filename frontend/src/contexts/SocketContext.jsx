@@ -14,10 +14,12 @@ export const SocketProvider = ({ children }) => {
   const { isAuthenticated, user } = useAuth()
 
   useEffect(() => {
-    // Only attempt to connect when user is authenticated and an explicit WS URL is provided.
+    // Only attempt to connect when user is authenticated and an explicit WS URL is provided
+    // and websockets are explicitly enabled via VITE_ENABLE_WS=true.
     const WS_URL = import.meta.env.VITE_WS_URL
+    const WS_ENABLED = import.meta.env.VITE_ENABLE_WS === 'true'
 
-    if (!WS_URL) {
+    if (!WS_URL || !WS_ENABLED) {
       // No websocket configured; avoid noisy 404 handshake attempts.
       if (socket) {
         socket.close()
