@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Plus, Image, Video, Smile, MapPin } from 'lucide-react'
 import CreatePost from '../../components/Posts/CreatePost'
 import Post from '../../components/Posts/post'
-import Stories from '../../components/Posts/Stories'
+import Stories from '../../components/Posts/stories'
 import LoadingSpinner from '../../components/Common/LoadingSpinner'
 import { postsAPI } from '../../services/api'
 
