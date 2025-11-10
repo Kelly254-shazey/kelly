@@ -32,7 +32,7 @@ const Announcements = () => {
       time: '8:00 PM EAT',
       location: 'Virtual Event',
       attendees: 247,
-      image: '/default-event.jpg'
+      image: '/default-product.svg'
     },
     // Add more events...
   ]

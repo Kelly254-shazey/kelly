@@ -54,7 +54,7 @@ const Sidebar = () => {
         </p>
       </div>
 
-      <nav className="mt-6 px-4">
+      <nav className="mt-6 px-4 overflow-y-auto h-[calc(100vh-150px)]">
         <ul className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon

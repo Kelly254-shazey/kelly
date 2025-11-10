@@ -56,7 +56,10 @@ const VideoCall = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="btn-primary flex items-center space-x-2">
+            <button
+              onClick={startCall}
+              className="btn-primary flex items-center space-x-2"
+            >
               <Video className="h-4 w-4" />
               <span>New Call</span>
             </button>
