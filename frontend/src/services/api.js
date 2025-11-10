@@ -1,7 +1,7 @@
 import axios from 'axios'
 
-// Change this line - your Laravel backend runs on port 8000, not 8888
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+// Change this line - use the Vite proxy for API requests
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -83,6 +83,8 @@ export const marketplaceAPI = {
   createProduct: (data) => api.post('/marketplace/products', data),
   purchase: (productId, data) => api.post(`/marketplace/products/${productId}/purchase`, data),
   confirmPurchase: (orderId) => api.post(`/marketplace/orders/${orderId}/confirm`),
+  like: (productId) => api.post(`/marketplace/products/${productId}/like`),
+  unlike: (productId) => api.post(`/marketplace/products/${productId}/unlike`),
 }
 
 export const profileAPI = {
@@ -130,6 +132,7 @@ export const adsAPI = {
 export const streamingAPI = {
   createStream: (data) => api.post('/stream/start', data),
   getStreams: () => api.get('/streams'),
+  getStream: (streamId) => api.get(`/stream/${streamId}`),
   endStream: (streamId) => api.post(`/stream/${streamId}/end`),
   joinStream: (streamId) => api.post(`/stream/${streamId}/join`),
   sendStreamMessage: (streamId, data) => api.post(`/stream/${streamId}/message`, data),
