@@ -198,6 +198,7 @@ const StreamCard = ({ stream, onJoin }) => {
       <div className="relative">
         <img
           src={stream.thumbnail || '/default-stream.jpg'}
+          onError={(e) => { e.target.src = 'https://via.placeholder.com/800x450?text=Live+Stream' }}
           alt={stream.title}
           className="w-full h-48 object-cover rounded-lg mb-3"
         />
@@ -232,6 +233,7 @@ const StreamCard = ({ stream, onJoin }) => {
           <div className="flex items-center space-x-2">
             <img
               src={stream.user.avatar || '/default-avatar.png'}
+              onError={(e) => { e.target.src = 'https://via.placeholder.com/48?text=Avatar' }}
               alt={stream.user.name}
               className="w-6 h-6 rounded-full"
             />

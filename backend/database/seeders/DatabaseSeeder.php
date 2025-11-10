@@ -25,11 +25,15 @@ class DatabaseSeeder extends Seeder
             $superRole = Role::firstOrCreate(['name' => 'super_admin']);
 
         // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // Ensure demo test user exists (idempotent)
+        $testPassword = env('TEST_USER_PASSWORD', 'password');
+        User::updateOrCreate(
+            ['email' => 'test@example.com'],
+            [
+                'name' => 'Test User',
+                'password' => Hash::make($testPassword),
+            ]
+        );
 
         // Create or update the provided super admin account
             // Create or update the provided super admin account
@@ -48,5 +52,7 @@ class DatabaseSeeder extends Seeder
 
         // Seed demo marketplace data
         $this->call([\Database\Seeders\MarketplaceSeeder::class]);
+        // Seed demo communities
+        $this->call([\Database\Seeders\CommunitiesSeeder::class]);
     }
 }

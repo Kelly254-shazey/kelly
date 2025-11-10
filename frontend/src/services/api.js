@@ -135,6 +135,14 @@ export const streamingAPI = {
   sendStreamMessage: (streamId, data) => api.post(`/stream/${streamId}/message`, data),
 }
 
+export const communityAPI = {
+  getCommunities: (page = 1) => api.get(`/communities?page=${page}`),
+  getCommunity: (id) => api.get(`/communities/${id}`),
+  joinCommunity: (id) => api.post(`/communities/${id}/join`),
+  leaveCommunity: (id) => api.post(`/communities/${id}/leave`),
+  createCommunity: (data) => api.post('/communities', data),
+}
+
 export const aiAPI = {
   getFriendSuggestions: () => api.get('/ai/friend-suggestions'),
   summarizeConversation: (conversationId) => api.post('/ai/summarize-conversation', { conversation_id: conversationId }),

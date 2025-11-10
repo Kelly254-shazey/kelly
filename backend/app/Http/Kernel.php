@@ -13,10 +13,13 @@ class Kernel extends HttpKernel
     'admin' => \App\Http\Middleware\AdminMiddleware::class,
   ];
   protected $middleware = [
-    // Other middleware...
-    \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-
-    // Use the official Fruitcake CORS middleware which uses config/cors.php
+    // Use the official Fruitcake CORS middleware which uses config/cors.php.
+    // Place it early so preflight (OPTIONS) requests get CORS headers before
+    // other middleware (like Sanctum) can short-circuit the response.
     \Fruitcake\Cors\HandleCors::class,
+
+    // Sanctum's middleware can inspect cookies; ensure it runs after CORS
+    // so responses (including OPTIONS) include the proper CORS headers.
+    \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
   ];
 }

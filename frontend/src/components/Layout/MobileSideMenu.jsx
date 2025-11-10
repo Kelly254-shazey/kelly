@@ -1,9 +1,11 @@
 import React, { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
 import { X, Home, Users, Video, MessageCircle, ShoppingCart, Grid, Zap } from 'lucide-react'
 
 export default function MobileSideMenu({ open, onClose, user }) {
   const panelRef = useRef(null)
+  const { logout } = useAuth()
 
   useEffect(() => {
     function handleKey(e) {
@@ -89,6 +91,9 @@ export default function MobileSideMenu({ open, onClose, user }) {
           <Link to={`/profile/${user?.id}`} onClick={onClose} className="w-full block text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
             View profile
           </Link>
+          <button onClick={() => { logout(); onClose(); }} className="w-full text-left px-3 py-2 mt-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600">
+            Logout
+          </button>
         </div>
       </div>
     </aside>
