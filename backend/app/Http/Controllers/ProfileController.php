@@ -38,6 +38,14 @@ class ProfileController extends Controller
   {
     $user = $request->user();
 
+    // Debug logging
+    \Log::info('Profile update request', [
+      'user_id' => $user->id,
+      'all_data' => $request->all(),
+      'files' => $request->allFiles(),
+      'headers' => $request->headers->all()
+    ]);
+
     $request->validate([
       'name' => 'sometimes|string|max:255',
       'bio' => 'nullable|string|max:500',
@@ -62,7 +70,7 @@ class ProfileController extends Controller
       $user->cover_photo = Storage::url($path);
     }
 
-    $user->update($request->only(['name', 'bio', 'county']));
+    $user->update($request->only(['name', 'bio', 'county', 'avatar', 'cover_photo']));
 
     return response()->json([
       'user' => $user->fresh()
