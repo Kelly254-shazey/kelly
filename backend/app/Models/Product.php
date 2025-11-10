@@ -40,6 +40,16 @@ class Product extends Model
     return $this->hasMany(Order::class);
   }
 
+  public function likes()
+  {
+    return $this->hasMany(ProductLike::class);
+  }
+
+  public function isLikedBy(User $user)
+  {
+    return $this->likes()->where('user_id', $user->id)->exists();
+  }
+
   // Scopes
   public function scopeAvailable($query)
   {

@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\ProductLike;
+use App\Models\User;
 use App\Models\Order;
+use Laravel\Sanctum\PersonalAccessToken;
 use App\Services\TransactionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -12,6 +15,17 @@ class MarketplaceController extends Controller
 {
   public function products(Request $request)
   {
+    // Resolve bearer token manually for this public route
+    if (!$request->user() && $request->bearerToken()) {
+      $token = PersonalAccessToken::findToken($request->bearerToken());
+
+      if ($token) {
+        $request->setUserResolver(function () use ($token) {
+          return $token->tokenable;
+        });
+      }
+    }
+
     $query = Product::with('user')
       ->available()
       ->when($request->category, function ($q) use ($request) {
@@ -32,6 +46,14 @@ class MarketplaceController extends Controller
       ->orderBy('created_at', 'desc');
 
     $products = $query->paginate(12);
+
+    // Add like status for authenticated user
+    $products->getCollection()->transform(function ($product) use ($request) {
+      $user = $request->user();
+      $product->is_liked = $user ? $product->isLikedBy($user) : false;
+      $product->likes_count = $product->likes()->count();
+      return $product;
+    });
 
     return response()->json($products);
   }
@@ -109,6 +131,62 @@ class MarketplaceController extends Controller
 
     return response()->json([
       'message' => 'Purchase confirmed successfully'
+    ]);
+  }
+
+  public function like(Request $request, Product $product)
+  {
+    $user = $request->user();
+
+    if (!$user) {
+      return response()->json(['message' => 'Authentication required'], 401);
+    }
+
+    // Check if user already liked this product
+    if ($product->isLikedBy($user)) {
+      // Idempotent: if already liked, return success with current likes_count
+      return response()->json([
+        'message' => 'Product already liked',
+        'likes_count' => $product->likes()->count()
+      ], 200);
+    }
+
+    ProductLike::create([
+      'user_id' => $user->id,
+      'product_id' => $product->id
+    ]);
+
+    return response()->json([
+      'message' => 'Product liked successfully',
+      'likes_count' => $product->likes()->count()
+    ]);
+  }
+
+  public function unlike(Request $request, Product $product)
+  {
+    $user = $request->user();
+
+    if (!$user) {
+      return response()->json(['message' => 'Authentication required'], 401);
+    }
+
+    $like = ProductLike::where('user_id', $user->id)
+      ->where('product_id', $product->id)
+      ->first();
+
+    if (!$like) {
+      // Idempotent: if not liked, return success with current likes_count
+      return response()->json([
+        'message' => 'Product not liked',
+        'likes_count' => $product->likes()->count()
+      ], 200);
+    }
+
+    $like->delete();
+
+    return response()->json([
+      'message' => 'Product unliked successfully',
+      'likes_count' => $product->likes()->count()
     ]);
   }
 }
