@@ -63,9 +63,10 @@ const Register = () => {
             <div className="grid grid-cols-2 gap-4">
               {/* First Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">First Name</label>
+                <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">First Name</label>
                 <input
                   {...register('first_name', { required: 'First name is required' })}
+                  id="first_name"
                   type="text"
                   className="input-field"
                   placeholder="John"
@@ -77,9 +78,10 @@ const Register = () => {
 
               {/* Last Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Last Name</label>
+                <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Last Name</label>
                 <input
                   {...register('last_name', { required: 'Last name is required' })}
+                  id="last_name"
                   type="text"
                   className="input-field"
                   placeholder="Doe"
@@ -92,7 +94,7 @@ const Register = () => {
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <input
@@ -103,6 +105,7 @@ const Register = () => {
                       message: 'Invalid email address'
                     }
                   })}
+                  id="email"
                   type="email"
                   className="input-field pl-10"
                   placeholder="john@example.com"
@@ -115,7 +118,7 @@ const Register = () => {
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <input
@@ -126,6 +129,7 @@ const Register = () => {
                       message: 'Password must be at least 6 characters'
                     }
                   })}
+                  id="password"
                   type={showPassword ? 'text' : 'password'}
                   className="input-field pl-10 pr-10"
                   placeholder="Create a password"
@@ -145,11 +149,12 @@ const Register = () => {
 
             {/* Date of Birth */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date of Birth</label>
+              <label htmlFor="date_of_birth" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date of Birth</label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <input
                   {...register('date_of_birth', { required: 'Date of birth is required' })}
+                  id="date_of_birth"
                   type="date"
                   className="input-field pl-10"
                 />
@@ -161,11 +166,12 @@ const Register = () => {
 
             {/* County */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">County</label>
+              <label htmlFor="county" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">County</label>
               <div className="relative">
                 <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <select
                   {...register('county', { required: 'Please select your county' })}
+                  id="county"
                   className="input-field pl-10"
                 >
                   <option value="">Select your county</option>
@@ -189,6 +195,7 @@ const Register = () => {
                   <label key={gender} className="flex items-center">
                     <input
                       {...register('gender', { required: 'Please select gender' })}
+                      id={`gender-${gender.toLowerCase()}`}
                       type="radio"
                       value={gender.toLowerCase()}
                       className="text-royal-blue focus:ring-royal-blue"
@@ -206,10 +213,11 @@ const Register = () => {
             <div className="flex items-center">
               <input
                 {...register('terms', { required: 'You must accept the terms and conditions' })}
+                id="terms"
                 type="checkbox"
                 className="h-4 w-4 text-royal-blue focus:ring-royal-blue border-gray-300 rounded"
               />
-              <label className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+              <label htmlFor="terms" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                 I agree to the{' '}
                 <a href="#" className="text-royal-blue hover:text-royal-blue/80">Terms of Service</a>
                 {' '}and{' '}

@@ -55,6 +55,7 @@ const Login = () => {
                       message: 'Invalid email address'
                     }
                   })}
+                  id="email"
                   type="email"
                   className="input-field pl-10"
                   placeholder="Enter your email"
@@ -79,6 +80,7 @@ const Login = () => {
                       message: 'Password must be at least 6 characters'
                     }
                   })}
+                  id="password"
                   type={showPassword ? 'text' : 'password'}
                   className="input-field pl-10 pr-10"
                   placeholder="Enter your password"
