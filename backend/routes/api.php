@@ -80,6 +80,8 @@ Route::middleware('auth:sanctum')->group(function () {
   Route::prefix('marketplace')->group(function () {
     Route::post('/products', [MarketplaceController::class, 'storeProduct']);
     Route::post('/products/{product}/purchase', [MarketplaceController::class, 'purchase']);
+    Route::post('/products/{product}/like', [MarketplaceController::class, 'like']);
+    Route::post('/products/{product}/unlike', [MarketplaceController::class, 'unlike']);
     Route::post('/orders/{order}/confirm', [MarketplaceController::class, 'confirmPurchase']);
   });
 
