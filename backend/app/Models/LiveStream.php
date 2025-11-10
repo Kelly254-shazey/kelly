@@ -33,11 +33,13 @@ class LiveStream extends Model
 
   public function viewers()
   {
-    return $this->hasMany(StreamViewer::class);
+    // StreamViewer uses `stream_id` as the foreign key
+    return $this->hasMany(StreamViewer::class, 'stream_id');
   }
 
   public function messages()
   {
-    return $this->hasMany(StreamMessage::class);
+    // StreamMessage uses `stream_id` as the foreign key
+    return $this->hasMany(StreamMessage::class, 'stream_id');
   }
 }
