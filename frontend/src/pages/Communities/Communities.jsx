@@ -43,7 +43,9 @@ const Communities = () => {
     }
   }
 
-  const fallbackImg = (e) => { e.target.src = 'https://via.placeholder.com/600x320?text=Community' }
+  const fallbackImg = (e) => { 
+    e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjMyMCIgdmlld0JveD0iMCAwIDYwMCAzMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI2MDAiIGhlaWdodD0iMzIwIiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjMwMCIgeT0iMTYwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5Q0E0QUYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Db21tdW5pdHk8L3RleHQ+Cjwvc3ZnPg=='
+  }
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -65,7 +67,7 @@ const Communities = () => {
           communities.map((community) => (
             <div key={community.id} className="card group cursor-pointer">
               <img
-                src={community.image || '/default-community.jpg'}
+                src={community.image || '/default-product.svg'}
                 onError={fallbackImg}
                 alt={community.name}
                 className="w-full h-32 object-cover rounded-t-lg mb-4"
