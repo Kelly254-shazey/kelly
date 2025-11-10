@@ -46,7 +46,7 @@ function App() {
         <EchoProvider>
           <SocketProvider>
             <CallProvider>
-            <Router>
+            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <AppContent />
             </Router>
             </CallProvider>
@@ -150,6 +150,17 @@ function AppContent() {
 
         <Route 
           path="/live" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <LiveStream />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/live/:streamId" 
           element={
             <ProtectedRoute>
               <Layout>
