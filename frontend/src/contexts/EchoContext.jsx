@@ -5,22 +5,24 @@ import { useAuth } from './AuthContext'
 // npm install laravel-echo pusher-js
 
 let Echo = null
-try {
-  // Dynamically import so builds that don't install these libs don't break at parse-time
-  // (the actual imports will be resolved at runtime after npm install)
-  // eslint-disable-next-line no-eval
-  Echo = eval("require('laravel-echo')")
-} catch (e) {
-  // ignore if not available at development time
+let Pusher = null
+
+// Async function to load optional dependencies
+const loadDependencies = async () => {
+  try {
+    const [echoModule, pusherModule] = await Promise.all([
+      import('laravel-echo'),
+      import('pusher-js')
+    ])
+    Echo = echoModule.default || echoModule
+    Pusher = pusherModule.default || pusherModule
+  } catch (e) {
+    // ignore if not available at development time
+  }
 }
 
-let Pusher = null
-try {
-  // eslint-disable-next-line no-eval
-  Pusher = eval("require('pusher-js')")
-} catch (e) {
-  // ignore
-}
+// Load dependencies on module initialization
+loadDependencies()
 
 const EchoContext = createContext()
 
