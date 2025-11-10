@@ -149,6 +149,7 @@ const Post = ({ post, onLike, onComment }) => {
             />
             <div className="flex-1 flex space-x-2">
               <input
+                id="comment-input"
                 type="text"
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}

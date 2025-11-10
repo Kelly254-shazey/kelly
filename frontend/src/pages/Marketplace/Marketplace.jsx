@@ -33,6 +33,9 @@ const Marketplace = () => {
       const response = await marketplaceAPI.getProducts(params)
       // Debug: log full response to help diagnose shape issues
       console.debug('marketplace API response', response?.data)
+      console.debug('auth token present:', !!localStorage.getItem('kellyflo-token'))
+      console.debug('first product is_liked:', response?.data?.data?.[0]?.is_liked)
+      console.debug('first product likes_count:', response?.data?.data?.[0]?.likes_count)
 
       // Backend may return products in different shapes:
       // - array directly: [ {..}, ... ]
@@ -101,6 +104,7 @@ const Marketplace = () => {
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <input
+              id="marketplace-search"
               type="text"
               placeholder="Search for items..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-blue"
@@ -155,6 +159,7 @@ const Marketplace = () => {
 
             <div className="flex space-x-2">
               <input
+                id="min-price"
                 type="number"
                 placeholder="Min Price"
                 value={filters.minPrice}
@@ -162,6 +167,7 @@ const Marketplace = () => {
                 className="input-field"
               />
               <input
+                id="max-price"
                 type="number"
                 placeholder="Max Price"
                 value={filters.maxPrice}
@@ -174,7 +180,7 @@ const Marketplace = () => {
       </div>
 
       {/* Products Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {(Array.isArray(products) ? products : []).map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
@@ -206,7 +212,7 @@ const Marketplace = () => {
           </div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No products found</h3>
           <p className="text-gray-500 dark:text-gray-400">Try adjusting your filters or search terms</p>
-            <div className="mt-4">
+            <div className="mt-4 space-y-2">
               <button
                 onClick={() => {
                   // Dev-only: inject mock products for local development
@@ -238,6 +244,15 @@ const Marketplace = () => {
                 }}
                 className="btn-secondary"
               >Use mock data</button>
+              
+              <button
+                onClick={() => {
+                  // Dev-only: Set test authentication token
+                  localStorage.setItem('kellyflo-token', '2|iWbA12UPa8wZ6OjgMAD2e88KhwixwWQmi6NHa7BN47ffbd3b')
+                  window.location.reload()
+                }}
+                className="btn-primary"
+              >Login as Test User</button>
             </div>
         </div>
       )}
@@ -246,11 +261,50 @@ const Marketplace = () => {
 }
 
 const ProductCard = ({ product }) => {
-  const [isLiked, setIsLiked] = useState(product.is_liked)
+  const [isLiked, setIsLiked] = useState(product.is_liked || false)
+  const [likesCount, setLikesCount] = useState(product.likes_count || 0)
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Sync local state with product props when they change
+  useEffect(() => {
+    console.debug(`Product ${product.id} sync:`, { 
+      is_liked: product.is_liked, 
+      likes_count: product.likes_count 
+    })
+    setIsLiked(!!product.is_liked) // Ensure boolean conversion
+    setLikesCount(product.likes_count || 0)
+  }, [product.id, product.is_liked, product.likes_count])
 
   const handleLike = async () => {
-    setIsLiked(!isLiked)
-    // TODO: Implement like functionality
+    if (isLoading) return
+
+    setIsLoading(true)
+    const wasLiked = isLiked
+
+    // Optimistic update
+    setIsLiked(!wasLiked)
+    setLikesCount(prev => wasLiked ? Math.max(0, prev - 1) : prev + 1)
+
+    try {
+      let response
+      if (wasLiked) {
+        response = await marketplaceAPI.unlike(product.id)
+      } else {
+        response = await marketplaceAPI.like(product.id)
+      }
+
+      // Update with actual data from server
+      if (response.data && response.data.likes_count !== undefined) {
+        setLikesCount(response.data.likes_count)
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error)
+      // Revert optimistic update on error
+      setIsLiked(wasLiked)
+      setLikesCount(prev => wasLiked ? prev + 1 : Math.max(0, prev - 1))
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -261,16 +315,22 @@ const ProductCard = ({ product }) => {
           alt={product.title}
           className="w-full h-48 object-cover rounded-lg mb-3"
         />
-        <button
-          onClick={handleLike}
-          className="absolute top-2 right-2 p-2 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-shadow"
-        >
-          <Heart
-            className={`h-4 w-4 ${
-              isLiked ? 'fill-red-500 text-red-500' : 'text-gray-400'
-            }`}
-          />
-        </button>
+        <div className="absolute top-2 right-2 flex items-center space-x-1">
+          <span className="text-xs text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-2 py-1 rounded-full">
+            {likesCount}
+          </span>
+          <button
+            onClick={handleLike}
+            disabled={isLoading}
+            className="p-2 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-shadow disabled:opacity-50"
+          >
+            <Heart
+              className={`h-4 w-4 ${
+                isLiked ? 'fill-red-500 text-red-500' : 'text-gray-400'
+              } ${isLoading ? 'animate-pulse' : ''}`}
+            />
+          </button>
+        </div>
         <div className="absolute top-2 left-2">
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
             product.condition === 'new' 
