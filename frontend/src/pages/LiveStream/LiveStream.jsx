@@ -1,18 +1,34 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { Play, Users, Heart, MessageCircle, Share, MoreVertical, Radio } from 'lucide-react'
 import { streamingAPI } from '../../services/api'
 import { useSocket } from '../../contexts/SocketContext'
 
 const LiveStream = () => {
+  const { streamId } = useParams()
+  const navigate = useNavigate()
   const [streams, setStreams] = useState([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [currentStream, setCurrentStream] = useState(null)
+  const [remoteStream, setRemoteStream] = useState(null)
   const videoRef = useRef(null)
+  const remoteVideoRef = useRef(null)
+  const peerConnectionRef = useRef(null)
   const socket = useSocket()
 
   useEffect(() => {
     fetchStreams()
   }, [])
+
+  // Handle direct stream access via URL
+  useEffect(() => {
+    if (streamId && !currentStream) {
+      fetchStreamById(streamId)
+    } else if (streamId && currentStream && !isStreaming) {
+      // Initialize viewer connection when stream is loaded
+      initializeViewerConnection(currentStream)
+    }
+  }, [streamId, currentStream, isStreaming])
 
   useEffect(() => {
     if (socket) {
@@ -36,13 +52,72 @@ const LiveStream = () => {
         }
       })
 
+      // WebRTC signaling events
+      socket.on('stream_offer', async ({ streamId, offer, from }) => {
+        if (peerConnectionRef.current && currentStream?.id === streamId) {
+          try {
+            await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(offer))
+            const answer = await peerConnectionRef.current.createAnswer()
+            await peerConnectionRef.current.setLocalDescription(answer)
+
+            socket.emit('stream_answer', {
+              streamId,
+              answer,
+              to: from
+            })
+          } catch (error) {
+            console.error('Error handling stream offer:', error)
+          }
+        }
+      })
+
+      socket.on('stream_answer', async ({ answer }) => {
+        if (peerConnectionRef.current) {
+          try {
+            await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(answer))
+          } catch (error) {
+            console.error('Error handling stream answer:', error)
+          }
+        }
+      })
+
+      socket.on('ice_candidate', async ({ candidate }) => {
+        if (peerConnectionRef.current) {
+          try {
+            await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate))
+          } catch (error) {
+            console.error('Error adding ICE candidate:', error)
+          }
+        }
+      })
+
       return () => {
         socket.off('stream_started')
         socket.off('stream_ended')
         socket.off('viewer_count_update')
+        socket.off('stream_offer')
+        socket.off('stream_answer')
+        socket.off('ice_candidate')
       }
     }
   }, [socket, currentStream])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Stop any active streams
+      if (videoRef.current?.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach(track => track.stop())
+      }
+      if (remoteVideoRef.current?.srcObject) {
+        remoteVideoRef.current.srcObject.getTracks().forEach(track => track.stop())
+      }
+      // Close peer connection
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close()
+      }
+    }
+  }, [])
 
   const fetchStreams = async () => {
     try {
@@ -50,6 +125,15 @@ const LiveStream = () => {
       setStreams(response.data.streams)
     } catch (error) {
       console.error('Error fetching streams:', error)
+    }
+  }
+
+  const fetchStreamById = async (id) => {
+    try {
+      const response = await streamingAPI.getStream(id)
+      setCurrentStream(response.data.stream)
+    } catch (error) {
+      console.error('Error fetching stream:', error)
     }
   }
 
@@ -63,6 +147,30 @@ const LiveStream = () => {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream
+      }
+
+      // Create WebRTC peer connection
+      const peerConnection = new RTCPeerConnection({
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' }
+        ]
+      })
+
+      peerConnectionRef.current = peerConnection
+
+      // Add local stream tracks to peer connection
+      stream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, stream)
+      })
+
+      // Handle ICE candidates
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate && socket) {
+          socket.emit('ice_candidate', {
+            streamId: newStream.id,
+            candidate: event.candidate
+          })
+        }
       }
 
       const response = await streamingAPI.createStream({
@@ -109,7 +217,52 @@ const LiveStream = () => {
   }
 
   const joinStream = (stream) => {
-    setCurrentStream(stream)
+    // Navigate to unique stream URL
+    navigate(`/live/${stream.id}`)
+  }
+
+  const initializeViewerConnection = async (stream) => {
+    try {
+      const peerConnection = new RTCPeerConnection({
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' }
+        ]
+      })
+
+      peerConnectionRef.current = peerConnection
+
+      // Handle remote stream
+      peerConnection.ontrack = (event) => {
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = event.streams[0]
+          setRemoteStream(event.streams[0])
+        }
+      }
+
+      // Handle ICE candidates
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate && socket) {
+          socket.emit('ice_candidate', {
+            streamId: stream.id,
+            candidate: event.candidate
+          })
+        }
+      }
+
+      // Create offer and send to broadcaster via socket
+      const offer = await peerConnection.createOffer()
+      await peerConnection.setLocalDescription(offer)
+
+      if (socket) {
+        socket.emit('join_stream', {
+          streamId: stream.id,
+          offer: offer
+        })
+      }
+
+    } catch (error) {
+      console.error('Error initializing viewer connection:', error)
+    }
   }
 
   return (
@@ -145,7 +298,15 @@ const LiveStream = () => {
         <StreamViewer 
           stream={currentStream} 
           isOwnStream={isStreaming}
-          onBack={() => setCurrentStream(null)}
+          videoRef={videoRef}
+          remoteVideoRef={remoteVideoRef}
+          onBack={() => {
+            if (streamId) {
+              navigate('/live')
+            } else {
+              setCurrentStream(null)
+            }
+          }}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -197,8 +358,8 @@ const StreamCard = ({ stream, onJoin }) => {
     <div className="card group cursor-pointer transform hover:scale-105 transition-transform duration-200">
       <div className="relative">
         <img
-          src={stream.thumbnail || '/default-stream.jpg'}
-          onError={(e) => { e.target.src = 'https://via.placeholder.com/800x450?text=Live+Stream' }}
+          src={stream.thumbnail || 'https://picsum.photos/800/450?random=1'}
+          onError={(e) => { e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQ1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkxpdmUgU3RyZWFtPC90ZXh0Pjwvc3ZnPg==' }}
           alt={stream.title}
           className="w-full h-48 object-cover rounded-lg mb-3"
         />
@@ -232,12 +393,12 @@ const StreamCard = ({ stream, onJoin }) => {
         <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
           <div className="flex items-center space-x-2">
             <img
-              src={stream.user.avatar || '/default-avatar.png'}
-              onError={(e) => { e.target.src = 'https://via.placeholder.com/48?text=Avatar' }}
-              alt={stream.user.name}
+              src={stream.user?.avatar || '/default-avatar.png'}
+              onError={(e) => { e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyNCIgY3k9IjI0IiByPSIyNCIgZmlsbD0iI2RkZCIvPjxjaXJjbGUgY3g9IjI0IiBjeT0iMTgiIHI9IjEwIiBmaWxsPSIjOTk5Ii8+PHBhdGggZD0iTTQwIDI4YzAtNi42LTUuNC0xMi0xMi0xMnMtMTIgNS40LTEyIDEyIiBmaWxsPSIjOTk5Ii8+PC9zdmc+' }}
+              alt={stream.user?.name || 'Streamer'}
               className="w-6 h-6 rounded-full"
             />
-            <span>{stream.user.name}</span>
+            <span>{stream.user?.name || 'Unknown User'}</span>
           </div>
           <span>{stream.category}</span>
         </div>
@@ -246,11 +407,23 @@ const StreamCard = ({ stream, onJoin }) => {
   )
 }
 
-const StreamViewer = ({ stream, isOwnStream, onBack }) => {
+const StreamViewer = ({ stream, isOwnStream, onBack, videoRef, remoteVideoRef }) => {
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
   const [reactions, setReactions] = useState([])
   const socket = useSocket()
+
+  // Early return if stream is not available
+  if (!stream) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Radio className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+          <p className="text-gray-600 dark:text-gray-400">Loading stream...</p>
+        </div>
+      </div>
+    )
+  }
 
   useEffect(() => {
     if (socket) {
@@ -306,14 +479,24 @@ const StreamViewer = ({ stream, isOwnStream, onBack }) => {
       {/* Video Player */}
       <div className="flex-1">
         <div className="bg-black rounded-xl overflow-hidden aspect-video relative">
-          {/* Video would be rendered here */}
-          <div className="w-full h-full bg-gray-900 flex items-center justify-center">
-            <div className="text-center text-white">
-              <Radio className="h-16 w-16 mx-auto mb-4 text-red-500" />
-              <p className="text-lg">Live Stream Player</p>
-              <p className="text-gray-400">Stream would be playing here</p>
-            </div>
-          </div>
+          {isOwnStream ? (
+            // Show own stream (broadcaster view)
+            <video
+              ref={videoRef}
+              autoPlay
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            // Show remote stream (viewer view)
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              className="w-full h-full object-cover"
+            />
+          )}
 
           {/* Stream Info Overlay */}
           <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
@@ -321,7 +504,7 @@ const StreamViewer = ({ stream, isOwnStream, onBack }) => {
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
               <span>LIVE</span>
               <Users className="h-4 w-4" />
-              <span>{stream.viewer_count} viewers</span>
+              <span>{stream.viewer_count || 0} viewers</span>
             </div>
             
             <button
@@ -355,23 +538,23 @@ const StreamViewer = ({ stream, isOwnStream, onBack }) => {
         {/* Stream Details */}
         <div className="mt-4 card">
           <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-            {stream.title}
+            {stream.title || 'Untitled Stream'}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            {stream.description}
+            {stream.description || 'No description available'}
           </p>
           <div className="flex items-center space-x-4">
             <img
-              src={stream.user.avatar || '/default-avatar.png'}
-              alt={stream.user.name}
+              src={stream.user?.avatar || '/default-avatar.png'}
+              alt={stream.user?.name || 'Streamer'}
               className="w-10 h-10 rounded-full"
             />
             <div>
               <p className="font-semibold text-gray-900 dark:text-white">
-                {stream.user.name}
+                {stream.user?.name || 'Unknown User'}
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {stream.category}
+                {stream.category || 'General'}
               </p>
             </div>
           </div>
@@ -427,6 +610,7 @@ const StreamViewer = ({ stream, isOwnStream, onBack }) => {
           {/* Message Input */}
           <form onSubmit={sendMessage} className="flex space-x-2">
             <input
+              id="livestream-message"
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
