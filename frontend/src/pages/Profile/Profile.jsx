@@ -13,6 +13,14 @@ const Profile = () => {
   const [user, setUser] = useState(null)
   const [activeTab, setActiveTab] = useState('posts')
   const [loading, setLoading] = useState(true)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editForm, setEditForm] = useState({
+    name: '',
+    bio: '',
+    county: '',
+    avatar: null,
+    cover_photo: null
+  })
 
   useEffect(() => {
     fetchUserProfile()
@@ -63,6 +71,67 @@ const Profile = () => {
       }
     } catch (err) {
       console.error('Error following/unfollowing', err)
+    }
+  }
+
+  const handleEditClick = () => {
+    setIsEditing(true)
+    setEditForm({
+      name: user.name || '',
+      bio: user.bio || '',
+      county: user.location || '',
+      avatar: null,
+      cover_photo: null
+    })
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditing(false)
+    setEditForm({
+      name: '',
+      bio: '',
+      county: '',
+      avatar: null,
+      cover_photo: null
+    })
+  }
+
+  const handleSaveProfile = async () => {
+    try {
+      const formData = new FormData()
+      formData.append('name', editForm.name)
+      formData.append('bio', editForm.bio)
+      formData.append('county', editForm.county)
+      
+      if (editForm.avatar) {
+        formData.append('avatar', editForm.avatar)
+      }
+      if (editForm.cover_photo) {
+        formData.append('cover_photo', editForm.cover_photo)
+      }
+
+      // Debug logging
+      console.log('Sending FormData:', {
+        name: editForm.name,
+        bio: editForm.bio,
+        county: editForm.county,
+        hasAvatar: !!editForm.avatar,
+        hasCoverPhoto: !!editForm.cover_photo
+      })
+
+      const res = await profileAPI.updateProfile(formData)
+      setUser(prev => ({
+        ...prev,
+        name: res.data.user.name,
+        bio: res.data.user.bio,
+        location: res.data.user.county,
+        avatar: res.data.user.avatar || prev.avatar,
+        cover_photo: res.data.user.cover_photo || prev.cover_photo
+      }))
+      setIsEditing(false)
+    } catch (err) {
+      console.error('Error updating profile', err)
+      // TODO: Show error message to user
     }
   }
 
@@ -163,7 +232,7 @@ const Profile = () => {
             <div className="flex space-x-3">
               {user.is_own_profile ? (
                 <>
-                  <button className="btn-secondary flex items-center space-x-2">
+                  <button onClick={handleEditClick} className="btn-secondary flex items-center space-x-2">
                     <Edit3 className="h-4 w-4" />
                     <span>Edit Profile</span>
                   </button>
@@ -180,6 +249,79 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Profile Form */}
+      {isEditing && (
+        <div className="mt-6 bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Edit Profile</h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+              <input
+                type="text"
+                value={editForm.name}
+                onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="Your name"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bio</label>
+              <textarea
+                value={editForm.bio}
+                onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="Tell us about yourself"
+                rows={3}
+                maxLength={500}
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{editForm.bio.length}/500</p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+              <input
+                type="text"
+                value={editForm.county}
+                onChange={(e) => setEditForm(prev => ({ ...prev, county: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="Your location"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Avatar</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setEditForm(prev => ({ ...prev, avatar: e.target.files[0] }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-royal-blue file:text-white hover:file:bg-royal-blue/90"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cover Photo</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setEditForm(prev => ({ ...prev, cover_photo: e.target.files[0] }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-royal-blue file:text-white hover:file:bg-royal-blue/90"
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end space-x-3 mt-6">
+            <button onClick={handleCancelEdit} className="btn-secondary">
+              Cancel
+            </button>
+            <button onClick={handleSaveProfile} className="btn-primary">
+              Save Changes
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="mt-8 border-b border-gray-200 dark:border-gray-700">
