@@ -4,11 +4,12 @@ import axios from 'axios'
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 // Create axios instance with base configuration
+// NOTE: do NOT set a global 'Content-Type' here so FormData requests
+// can let the browser set the correct multipart/form-data boundary.
 const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true, // Important for Sanctum
   headers: {
-    'Content-Type': 'application/json',
     'Accept': 'application/json'
   }
 })
@@ -89,7 +90,15 @@ export const marketplaceAPI = {
 
 export const profileAPI = {
   getProfile: (userId = null) => api.get(userId ? `/profile/${userId}` : '/profile'),
-  updateProfile: (data) => api.put('/profile', data),
+  updateProfile: (data) => {
+    const config = {}
+    if (data instanceof FormData) {
+      // For FormData we MUST NOT set Content-Type; let the browser set it.
+      // Provide only Accept header so cookies/auth headers still apply.
+      config.headers = { Accept: 'application/json' }
+    }
+    return api.put('/profile', data, config)
+  },
   follow: (userId) => api.post(`/users/${userId}/follow`),
   unfollow: (userId) => api.post(`/users/${userId}/unfollow`),
   sendFriendRequest: (userId) => api.post(`/users/${userId}/friend-request`),
