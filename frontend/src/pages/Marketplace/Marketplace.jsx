@@ -305,12 +305,12 @@ const ProductCard = ({ product }) => {
 
         <div className="flex items-center space-x-2 pt-2">
           <img
-            src={product.seller.avatar || '/default-avatar.png'}
-            alt={product.seller.name}
+            src={product.user.avatar || '/default-avatar.png'}
+            alt={product.user.name}
             className="w-6 h-6 rounded-full"
           />
           <span className="text-sm text-gray-600 dark:text-gray-400">
-            {product.seller.name}
+            {product.user.name}
           </span>
         </div>
 

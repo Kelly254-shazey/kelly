@@ -1,39 +1,19 @@
 <?php
-namespace App\Http\Resources;
 
-use Illuminate\Http\Exceptions\Json\JsonResource;
+namespace App\Exceptions;
 
-class UserResource extends JsonResource
+use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Throwable;
+
+class Handler extends ExceptionHandler
 {
-public function render($request, Throwable $exception)
-{
-    if ($request->expectsJson()) {
-        return response()->json([
-            'error' => true,
-            'message' => $this->getErrorMessage($exception),
-            'code' => $this->getErrorCode($exception)
-        ], $this->getStatusCode($exception));
+    /**
+     * Register the exception handling callbacks for the application.
+     */
+    public function register(): void
+    {
+        $this->reportable(function (Throwable $e) {
+            //
+        });
     }
-
-    return parent::render($request, $exception);
-}
-
-private function getErrorMessage($exception)
-{
-    if ($exception instanceof ValidationException) {
-        return 'Validation failed';
-    }
-    if ($exception instanceof ModelNotFoundException) {
-        return 'Resource not found';
-    }
-    return $exception->getMessage();
-}
-
-private function getStatusCode($exception)
-{
-    if ($exception instanceof ValidationException) return 422;
-    if ($exception instanceof ModelNotFoundException) return 404;
-    if ($exception instanceof AuthenticationException) return 401;
-    return 500;
-}
 }

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CommunityController;
 use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\PostController;
@@ -107,6 +108,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/', [StoryController::class, 'store']);
     Route::post('/{story}/view', [StoryController::class, 'view']);
     Route::delete('/{story}', [StoryController::class, 'destroy']);
+  });
+
+  // Communities
+  Route::prefix('communities')->group(function () {
+    Route::get('/', [CommunityController::class, 'index']);
+    Route::post('/', [CommunityController::class, 'store']);
+    Route::get('/{community}', [CommunityController::class, 'show']);
+    Route::post('/{community}/join', [CommunityController::class, 'join']);
+    Route::post('/{community}/leave', [CommunityController::class, 'leave']);
   });
 
   // AI Features

@@ -7,7 +7,7 @@ use App\Models\Wallet;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
-class UsersTableSeeder extends Seeder
+class UserTableSeeder extends Seeder
 {
   public function run()
   {

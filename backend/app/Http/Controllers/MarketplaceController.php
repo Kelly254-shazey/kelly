@@ -33,9 +33,7 @@ class MarketplaceController extends Controller
 
     $products = $query->paginate(12);
 
-    return response()->json([
-      'products' => $products
-    ]);
+    return response()->json($products);
   }
 
   public function storeProduct(Request $request)
