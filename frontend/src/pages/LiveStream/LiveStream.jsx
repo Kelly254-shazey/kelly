@@ -163,16 +163,6 @@ const LiveStream = () => {
         peerConnection.addTrack(track, stream)
       })
 
-      // Handle ICE candidates
-      peerConnection.onicecandidate = (event) => {
-        if (event.candidate && socket) {
-          socket.emit('ice_candidate', {
-            streamId: newStream.id,
-            candidate: event.candidate
-          })
-        }
-      }
-
       const response = await streamingAPI.createStream({
         title: 'My Live Stream',
         description: 'Join me for an amazing live session!'
@@ -181,6 +171,16 @@ const LiveStream = () => {
       const newStream = response.data.stream
       setCurrentStream(newStream)
       setIsStreaming(true)
+
+      // Now that we have a stream id, wire ICE candidate handler to reference it
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate && socket && newStream && newStream.id) {
+          socket.emit('ice_candidate', {
+            streamId: newStream.id,
+            candidate: event.candidate
+          })
+        }
+      }
 
       // Notify via socket
       if (socket) {
